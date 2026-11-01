@@ -21,7 +21,7 @@ Recommended starting profile:
 
 | Model | Context | Head | Prompt cache | Expected use |
 |---|---:|---|---|---|
-| Bonsai-2 2B | 2,048–65,536 | exact | optional | fastest feasibility target |
+| Bonsai-2 2B | 2,048–65,536* | exact | optional | fastest feasibility target |
 | Bonsai-2 4B | 4,096 | exact | off initially | recommended interactive target |
 | Bonsai-2 4B | 65,536 | exact | off or tightly bounded | stress test; limited headroom |
 | Bonsai-2 9B | 1,024–4,096 | exact | off initially | memory-sensitive experiment |
@@ -36,12 +36,16 @@ export KINDI_CHECKPOINT_BUDGET_MB=256
 export KINDI_BATCH=1
 ```
 
+*The 2B 65,536-context value is a starting point based on the model's successful
+larger-context behavior; this run's recorded 2B benchmark was at 2,048 context.
+
 These settings trade repeated-prompt speed for memory headroom. Prompt caching
 can help after a complete prompt has been processed, but the first long prompt
 still has to be read. A 1 GiB checkpoint budget was tested with a 4B/65K run;
-it increased memory pressure and the first 42K-token request did not finish
-before the client timeout. Do not assume that a 64K context is practical just
-because the server accepts it.
+it reserved more host RAM on an already constrained board. Separately, the first
+42K-token request did not finish before the client timeout while Kindi was still
+reading the prompt. Do not assume that a 64K context is practical just because
+the server accepts it.
 
 ## 1. Check prerequisites
 
@@ -260,12 +264,6 @@ The tested 4B results on a Jetson Orin Nano Super were approximately 61 tok/s pr
 During larger-model tests, watch both RAM and swap. A pinned-memory warning such
 as `cudaErrorMemoryAllocation` means Kindi has fallen back to synchronous host
 transfers; it is functional evidence, not evidence of an ideal deployment.
-
-```bash
-free -h
-swapon --show
-tegrastats --interval 1000
-```
 
 ## Limitations
 
