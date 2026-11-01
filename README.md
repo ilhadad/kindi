@@ -66,6 +66,8 @@ see [docs/INSTALL.md](docs/INSTALL.md).
 - [Agent benchmark](#agent-benchmark)
 - [Limits](#limits)
 - [Troubleshooting](#troubleshooting)
+- [Jetson Orin Nano ARM64 results](docs/JETSON-ORIN-NANO-ARM64.md)
+- [Jetson Orin Nano ARM64 setup](docs/JETSON-ORIN-NANO-ARM64-SETUP.md)
 - [License](#license)
 - [Acknowledgements](#acknowledgements)
 

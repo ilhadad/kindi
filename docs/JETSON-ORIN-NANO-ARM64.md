@@ -79,6 +79,32 @@ Recommended Jetson starting point from this run: 4B, exact head, 4K context for
 interactive use. The 4B 64K configuration is technically functional but has limited
 headroom.
 
+## 8 GB memory adjustments
+
+The product label says 8 GB, while Linux exposed approximately 7.3 GiB. We made
+no Kindi source changes; the working Jetson adaptation was an ARM64/CUDA 13
+environment plus conservative runtime settings. For the 4B interactive server,
+we used:
+
+```text
+KINDI_PROMPT_CACHE=0
+KINDI_PARK_MAX=0
+KINDI_CHECKPOINT_BUDGET_MB=256
+KINDI_BATCH=1
+```
+
+This kept approximately 4.3 GiB available at 4K context. A 4B/64K stress run
+started and answered a short request with approximately 3.0 GiB available, but
+large Hermes prompts took several minutes to read. Enabling a 1 GiB checkpoint
+budget was tested separately; the first 42K-token request did not complete
+before the client timeout and the run was stopped. The cache is therefore useful
+for shorter repeated prompts, but is not a solution for the first very long
+prompt on this hardware.
+
+The 9B model repeatedly emitted a failed 2.23 GB pinned-host allocation warning
+and fell back to synchronous transfers. That model is suitable for bounded
+experiments, not the recommended Jetson deployment profile.
+
 ## Reproduction outline
 
 ```text

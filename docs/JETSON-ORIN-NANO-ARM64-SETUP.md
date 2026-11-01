@@ -10,6 +10,39 @@ This is the native source-build path used to run Kindi 0.3.0 on a Jetson Orin Na
 - Use a separate experimental port such as `18080`; do not replace an existing production service.
 - Do not enable a systemd service until manual validation is complete.
 
+## Jetson Orin Nano 8 GB profile
+
+The board is marketed as an 8 GB device, but the tested system exposed about
+7.3 GiB of unified memory to Linux. CPU allocations, CUDA allocations, model
+weights, the K/V cache, filesystem cache and the operating system all compete
+for this same pool; there is no separate VRAM capacity to add to it.
+
+Recommended starting profile:
+
+| Model | Context | Head | Prompt cache | Expected use |
+|---|---:|---|---|---|
+| Bonsai-2 2B | 2,048–65,536 | exact | optional | fastest feasibility target |
+| Bonsai-2 4B | 4,096 | exact | off initially | recommended interactive target |
+| Bonsai-2 4B | 65,536 | exact | off or tightly bounded | stress test; limited headroom |
+| Bonsai-2 9B | 1,024–4,096 | exact | off initially | memory-sensitive experiment |
+| Bonsai-2 27B | — | — | — | not attempted; not a practical target on this board |
+
+For the 4B low-memory profile, use:
+
+```bash
+export KINDI_PROMPT_CACHE=0
+export KINDI_PARK_MAX=0
+export KINDI_CHECKPOINT_BUDGET_MB=256
+export KINDI_BATCH=1
+```
+
+These settings trade repeated-prompt speed for memory headroom. Prompt caching
+can help after a complete prompt has been processed, but the first long prompt
+still has to be read. A 1 GiB checkpoint budget was tested with a 4B/65K run;
+it increased memory pressure and the first 42K-token request did not finish
+before the client timeout. Do not assume that a 64K context is practical just
+because the server accepts it.
+
 ## 1. Check prerequisites
 
 ```bash
@@ -223,6 +256,16 @@ curl http://127.0.0.1:18080/health
 ```
 
 The tested 4B results on a Jetson Orin Nano Super were approximately 61 tok/s prompt processing and 52–54 tok/s generation at 2048 context. A 4B 65536-context stress test started and answered a short request, but left substantially less memory headroom and is not the recommended interactive setting.
+
+During larger-model tests, watch both RAM and swap. A pinned-memory warning such
+as `cudaErrorMemoryAllocation` means Kindi has fallen back to synchronous host
+transfers; it is functional evidence, not evidence of an ideal deployment.
+
+```bash
+free -h
+swapon --show
+tegrastats --interval 1000
+```
 
 ## Limitations
 
